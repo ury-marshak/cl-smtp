@@ -1,0 +1,11 @@
+
+CL-SMTP works in ACL, SBCL, CMUCL, OPENMCL, LISPWORKS and CLISP.
+
+For SBCL you need sb-bsd-sockets.
+
+CL-SMTP has a asdf system definition file.
+load this file:
+
+(asdf:operate 'asdf:load-op 'cl-smtp)
+
+thats all.

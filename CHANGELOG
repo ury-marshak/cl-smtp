@@ -1,0 +1,31 @@
+Version 20050729.1
+2005-07-29
+"CHANGE" license from LGPL to LLGPL
+"ADD" key display-name for optional display name of the from email adress
+(RFC 2822 3.4. Address Specification)
+Added LLGPL-LICENSE
+Change all files
+
+Version 20050127.1
+2005-01-27
+"FIXED" add correct multiline replies in read-from-smtp (RFC 822 APPENDIX E)
+"ADD" key extra-headers to send-email, send-smtp
+thanks Dave Bakkash to inform me about the wrong implemantation 
+of read-from-smtp and the tip with the extra-headers
+Change cl-smtp.asd, cl-smtp.lisp, README, CHANGELOG
+
+Version 20050119.1
+2005-01-19
+Add portability file "lispworks.lisp" to work with Lispworks,
+thanks Sean Ross for this file
+Added lispworks.lisp
+Change cl-smtp.asd, README, INSTALL, CHANGELOG
+
+Version 20050104.1
+2005-01-04
+"Fixed" month "Sep" missed in get-email-date-string
+Added this CHANGELOG
+
+Version 20040812.1
+2004-08-12
+Initial release
