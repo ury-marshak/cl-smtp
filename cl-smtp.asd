@@ -26,7 +26,9 @@
 (in-package :cl-smtp)
 
 (asdf:defsystem :cl-smtp
-	:version "20050729.1"
+        :version "20051210.1"
+        :depends-on 
+	        (#-allegro :cl-base64)
 	:components 
 		(#+sbcl(:file "sbcl")
 		 #+allegro(:file "acl")

@@ -57,32 +57,29 @@
       (mask str))
     resultstr))
 
+(defun string-to-base64-string (str)
+  #+allegro (excl:string-to-base64-string str)
+  #-allegro (cl-base64:string-to-base64-string str))
+
 
 (defun send-email (host from to subject message 
 		   &key (port 25) cc bcc reply-to extra-headers
-			display-name)
+			display-name authentication)
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
 	     :port port :cc (check-arg cc "cc") :bcc (check-arg bcc "bcc")
 	     :reply-to reply-to 
 	     :extra-headers extra-headers
-	     :display-name display-name))
+	     :display-name display-name
+	     :authentication authentication))
 
 
 (defun send-smtp (host from to subject message 
 		  &key (port 25) cc bcc reply-to extra-headers
-		       display-name)
+		       display-name authentication)
   (let ((sock (socket-stream (make-smtp-socket host port))))
     (unwind-protect
 	(progn
-	  (multiple-value-bind (code msgstr)
-	      (read-from-smtp sock)
-	    (when (/= code 220)
-	      (error "wrong response from smtp server: ~A" msgstr)))	  
-	  (write-to-smtp sock (format nil "HELO ~A" (get-host-name)))
-	  (multiple-value-bind (code msgstr)
-	      (read-from-smtp sock)
-	    (when (/= code 250)
-	      (error "wrong response from smtp server: ~A" msgstr)))
+	  (open-smtp-connection sock :authentication authentication)
 	  (write-to-smtp sock 
 			 (format nil "MAIL FROM:~@[~A ~]<~A>" display-name from))
 	  (multiple-value-bind (code msgstr)
@@ -132,6 +129,55 @@
 	      (error "in QUIT command:: ~A" msgstr))))      
       (close sock))))
 
+(defun open-smtp-connection (sock &key authentication)
+  (multiple-value-bind (code msgstr)
+      (read-from-smtp sock)
+    (when (/= code 220)
+      (error "wrong response from smtp server: ~A" msgstr)))
+  (cond
+   (authentication
+    (write-to-smtp sock (format nil "EHLO ~A" (get-host-name)))
+    (multiple-value-bind (code msgstr)
+	 (read-from-smtp sock)
+       (when (/= code 250)
+	 (error "wrong response from smtp server: ~A" msgstr)))
+    (cond
+     ((eq (car authentication) :plain)
+      (write-to-smtp sock (format nil "AUTH PLAIN ~A" 
+				  (string-to-base64-string
+				   (format nil "~A~C~A~C~A" (cadr authentication)
+					   #\null (cadr authentication) #\null
+					   (caddr authentication)))))
+      (multiple-value-bind (code msgstr)
+	  (read-from-smtp sock)
+	(when (/= code 235)
+	  (error "plain authentication failed: ~A" msgstr))))
+     ((eq (car authentication) :login)
+      (write-to-smtp sock "AUTH LOGIN")
+      (multiple-value-bind (code msgstr)
+	  (read-from-smtp sock)
+	(when (/= code 334)
+	  (error "login authentication failed: ~A" msgstr)))
+      (write-to-smtp sock (string-to-base64-string (cadr authentication)))
+      (multiple-value-bind (code msgstr)
+	  (read-from-smtp sock)
+	(when (/= code 334)
+	  (error "login authentication send username failed: ~A" msgstr)))
+      (write-to-smtp sock (string-to-base64-string (caddr authentication)))
+      (multiple-value-bind (code msgstr)
+	  (read-from-smtp sock)
+	(when (/= code 235)
+	  (error "login authentication send password failed: ~A" msgstr))))
+     (t
+      (error "authentication ~A is not supported in cl-smtp" 
+	     (car authentication)))))
+    (t
+     (write-to-smtp sock (format nil "HELO ~A" (get-host-name)))
+     (multiple-value-bind (code msgstr)
+	 (read-from-smtp sock)
+       (when (/= code 250)
+	 (error "wrong response from smtp server: ~A" msgstr))))))
+  
 
 (defun compute-rcpt-command (sock adresses)
   (dolist (to adresses)

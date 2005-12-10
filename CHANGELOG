@@ -1,3 +1,9 @@
+Version 20051210.1
+2005-12-10
+"ADD" key authentication for smtp authentication: '(:plain "username" "password")
+or '(:login "username" "password")
+add dependency to CL-BASE64 except allegro
+
 Version 20050729.1
 2005-07-29
 "CHANGE" license from LGPL to LLGPL
