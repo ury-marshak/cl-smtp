@@ -2,14 +2,24 @@
 CL-SMTP is a simple lisp smtp client. 
 It works in ACL, SBCL, CMUCL, OPENMCL, LISPWORKS and CLISP.
 
+new with authentication support for PLAIn and LOGIN authentication method
+
 See INSTALL for prerequisites and build details.
 
 To use cl-smtp:
 
 (asdf:operate 'asdf:load-op 'cl-smtp)
 
+For use cl-smtp with authentication support you need cl-base64 package and
+add :cl-smtp-authentication to features
+
+(push :cl-smtp-authentication *features*)
+(asdf:operate 'asdf:load-op 'cl-smtp)
+
+------------------------------------------------
+
 (cl-smtp:send-email host from to subject message
-                    &key (port 25) cc bcc reply-to extra-headers)
+                    &key (port 25) cc bcc reply-to extra-headers authentication)
 
  Arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
@@ -21,8 +31,11 @@ To use cl-smtp:
   - cc (String or Cons of Strings) : email adress carbon copy
   - bcc (String or Cons of Strings): email adress blind carbon copy
   - reply-to (String)              : email adress
-  - diplayname (String)            : diplayname of the sender
+  - displayname (String)           : displayname of the sender
   - extra-headers (Cons)           : extra headers as alist
+  - authentication (Cons)          : list with 3 elements
+                                     (:method "username" "password")
+                                     method is a keyword :plain or :login
 
 Returns nil or error with message
 
@@ -36,4 +49,4 @@ You can change this with setting the parameter *x-mailer*
 (setf cl-smtp::*x-mailer* "my x-mailer string)
 
 If you find bugs or want to send patches for enhancements, by email to
-Jan Idzikowski <ji@neumond.net>.
+Jan Idzikowski <jidzikowski@common-lisp.net>

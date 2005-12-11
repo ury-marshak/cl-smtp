@@ -58,8 +58,10 @@
     resultstr))
 
 (defun string-to-base64-string (str)
-  #+allegro (excl:string-to-base64-string str)
-  #-allegro (cl-base64:string-to-base64-string str))
+  (declare (ignorable str))
+  #+(and cl-smtp-authentication allegro) (excl:string-to-base64-string str)
+  #+(and cl-smtp-authentication (not allegro))
+	 (cl-base64:string-to-base64-string str))
 
 
 (defun send-email (host from to subject message 
@@ -76,6 +78,9 @@
 (defun send-smtp (host from to subject message 
 		  &key (port 25) cc bcc reply-to extra-headers
 		       display-name authentication)
+  #-cl-smtp-authentication
+  (when authentication
+    (error "cl-smtp was not compiled with authentication support, push :cl-smtp-authentication to *features* bevor load cl-smtp.asd"))
   (let ((sock (socket-stream (make-smtp-socket host port))))
     (unwind-protect
 	(progn

@@ -1,8 +1,15 @@
+Version 20051211.1
+2005-12-11
+add :cl-smtp-authentication for reader macro, that you can use cl-smtp with and
+without authentication support
+Change cl-smtp.asd, cl-smtp.lisp, README, CHANGELOG
+
 Version 20051210.1
 2005-12-10
 "ADD" key authentication for smtp authentication: '(:plain "username" "password")
 or '(:login "username" "password")
 add dependency to CL-BASE64 except allegro
+Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
 
 Version 20050729.1
 2005-07-29
