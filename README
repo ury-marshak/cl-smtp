@@ -2,18 +2,14 @@
 CL-SMTP is a simple lisp smtp client. 
 It works in ACL, SBCL, CMUCL, OPENMCL, LISPWORKS and CLISP.
 
-new with authentication support for PLAIn and LOGIN authentication method
+new with authentication support for PLAIN and LOGIN authentication method
+
+used CL-BASE64 package
 
 See INSTALL for prerequisites and build details.
 
 To use cl-smtp:
 
-(asdf:operate 'asdf:load-op 'cl-smtp)
-
-For use cl-smtp with authentication support you need cl-base64 package and
-add :cl-smtp-authentication to features
-
-(push :cl-smtp-authentication *features*)
 (asdf:operate 'asdf:load-op 'cl-smtp)
 
 ------------------------------------------------

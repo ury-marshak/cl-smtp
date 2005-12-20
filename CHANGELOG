@@ -1,6 +1,13 @@
+Version 20051220.1
+2005-12-20
+"ADD" win32 support for clisp
+"REMOVE" :cl-smtp-authentication
+"CHANGE" always use CL-BASE64 package 
+Change cl-smtp.asd, cl-smtp.lisp, clisp.lisp, README, CHANGELOG
+
 Version 20051211.1
 2005-12-11
-add :cl-smtp-authentication for reader macro, that you can use cl-smtp with and
+"ADD" :cl-smtp-authentication for reader macro, that you can use cl-smtp with and
 without authentication support
 Change cl-smtp.asd, cl-smtp.lisp, README, CHANGELOG
 

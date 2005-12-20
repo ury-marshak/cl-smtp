@@ -20,7 +20,10 @@
 
 (defun make-smtp-socket (host port)
   (handler-case
-      (socket:socket-connect port host :element-type 'character)
+      (socket:socket-connect port host :element-type 'character
+			     :external-format 
+			     (ext:make-encoding :charset charset:utf-8
+						:line-terminator :unix))
     (serious-condition (e)
       (error "could not create client socket:~A" e))))
 
@@ -28,4 +31,8 @@
   socket)
 
 (defun get-host-name ()
-  (linux:gethostname 256))
+  #+linux(linux:gethostname 256)
+  #-linux(let ((str (machine-instance)))
+	   (if (position #\Space str)
+	       (subseq str 0 (position #\Space str))
+	     str)))
