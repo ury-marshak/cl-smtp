@@ -26,7 +26,7 @@
 (in-package :cl-smtp)
 
 (asdf:defsystem :cl-smtp
-        :version "20051220.1"
+        :version "20060404.1"
 	:depends-on
 	        #-allegro (:cl-base64)
 	        #+allegro ()
@@ -38,6 +38,12 @@
 		 #+openmcl(:file "openmcl")
 		 #+lispworks(:file "lispworks")
 		 (:file "cl-smtp" :depends-on #+sbcl("sbcl") 
+					      #+allegro("acl")
+                                              #+cmu("cmucl")
+                                              #+clisp("clisp")
+					      #+openmcl("openmcl")
+					      #+lispworks("lispworks"))
+		 (:file "attachments" :depends-on #+sbcl("sbcl") 
 					      #+allegro("acl")
                                               #+cmu("cmucl")
                                               #+clisp("clisp")

@@ -29,7 +29,8 @@
 
 (defun check-arg (arg name)
   (cond
-   ((stringp arg)
+   ((or (stringp arg)
+        (pathnamep arg))
     (list arg))
    ((listp arg)
     arg)
@@ -65,19 +66,25 @@
 
 (defun send-email (host from to subject message 
 		   &key (port 25) cc bcc reply-to extra-headers
-			display-name authentication)
+			display-name authentication
+			attachments (buffer-size 256))
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
 	     :port port :cc (check-arg cc "cc") :bcc (check-arg bcc "bcc")
 	     :reply-to reply-to 
 	     :extra-headers extra-headers
 	     :display-name display-name
-	     :authentication authentication))
+	     :authentication authentication
+	     :attachments (check-arg attachments "attachments")
+	     :buffer-size (if (numberp buffer-size) 
+			      buffer-size
+			    256)))
 
 
 (defun send-smtp (host from to subject message 
 		  &key (port 25) cc bcc reply-to extra-headers
-		       display-name authentication)
-  (let ((sock (socket-stream (make-smtp-socket host port))))
+		       display-name authentication attachments buffer-size)
+  (let ((sock (socket-stream (make-smtp-socket host port)))
+	(boundary (make-random-boundary)))
     (unwind-protect
 	(progn
 	  (open-smtp-connection sock :authentication authentication)
@@ -111,10 +118,19 @@
 	    (dolist (l extra-headers)
 	      (write-to-smtp sock 
 			     (format nil "~A: ~{~a~^,~}" (car l) (rest l)))))
-	  (write-to-smtp sock "Mime-Version: 1.0")	  
+	  (write-to-smtp sock "Mime-Version: 1.0")
+	  (when attachments
+            (generate-multipart-header sock boundary))
 	  (write-char #\Return sock)
 	  (write-char #\NewLine sock)
+	  (when attachments 
+            (setq message (wrap-message-with-multipart-dividers 
+			   message boundary)))
 	  (write-to-smtp sock message)
+	  (when attachments
+            (dolist (attachment attachments)
+              (send-attachment sock attachment boundary buffer-size))
+            (send-attachments-end-marker sock boundary))
 	  (write-char #\. sock)
 	  (write-char #\Return sock)
 	  (write-char #\NewLine sock)

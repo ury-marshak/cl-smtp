@@ -2,7 +2,9 @@
 CL-SMTP is a simple lisp smtp client. 
 It works in ACL, SBCL, CMUCL, OPENMCL, LISPWORKS and CLISP.
 
-new with authentication support for PLAIN and LOGIN authentication method
+new with support for send attachments, thanks Brian Sorg for the implementation
+
+with authentication support for PLAIN and LOGIN authentication method
 
 used CL-BASE64 package
 
@@ -32,6 +34,12 @@ To use cl-smtp:
   - authentication (Cons)          : list with 3 elements
                                      (:method "username" "password")
                                      method is a keyword :plain or :login
+  - attachments (String or Pathname: attachments to send
+                Cons of String/Pathnames)
+  - buffer-size (Number default 256): controls how much of a attachment file
+                                      is read on each loop before encoding 
+                                      and transmitting the contents, 
+                                      the number is interpretted in KB  
 
 Returns nil or error with message
 
