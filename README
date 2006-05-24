@@ -17,7 +17,8 @@ To use cl-smtp:
 ------------------------------------------------
 
 (cl-smtp:send-email host from to subject message
-                    &key (port 25) cc bcc reply-to extra-headers authentication)
+                    &key (port 25) cc bcc reply-to extra-headers authentication
+                         attachments (buffer-size 256))
 
  Arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
