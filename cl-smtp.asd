@@ -20,32 +20,16 @@
    	(:use :cl :asdf)
 	(:export :send-email))
 
-#+sbcl (require :sb-bsd-sockets)
-
-
 (in-package :cl-smtp)
 
+(defparameter *debug* nil)
+
+(defmacro print-debug (str)
+  `(when *debug*
+      (print ,str)))
+
 (asdf:defsystem :cl-smtp
-        :version "20060404.1"
-	:depends-on
-	        #-allegro (:cl-base64)
-	        #+allegro ()
-	:components 
-		(#+sbcl(:file "sbcl")
-		 #+allegro(:file "acl")
-                 #+cmu(:file "cmucl")
-                 #+clisp(:file "clisp")
-		 #+openmcl(:file "openmcl")
-		 #+lispworks(:file "lispworks")
-		 (:file "cl-smtp" :depends-on #+sbcl("sbcl") 
-					      #+allegro("acl")
-                                              #+cmu("cmucl")
-                                              #+clisp("clisp")
-					      #+openmcl("openmcl")
-					      #+lispworks("lispworks"))
-		 (:file "attachments" :depends-on #+sbcl("sbcl") 
-					      #+allegro("acl")
-                                              #+cmu("cmucl")
-                                              #+clisp("clisp")
-					      #+openmcl("openmcl")
-					      #+lispworks("lispworks"))))
+        :version "20070904.1"
+	:depends-on (:usocket #-allegro :cl-base64)
+	:components ((:file "cl-smtp" :depends-on ("attachments"))
+		     (:file "attachments")))

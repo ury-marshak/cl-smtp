@@ -18,14 +18,9 @@
 
 (in-package :cl-smtp)
 
-(defparameter *debug* nil)
 (defparameter *x-mailer* (format nil "(~A ~A)" 
 				 (lisp-implementation-type)
 				 (lisp-implementation-version)))
-
-(defmacro print-debug (str)
-  `(when *debug*
-      (print ,str)))
 
 (defun check-arg (arg name)
   (cond
@@ -83,7 +78,7 @@
 (defun send-smtp (host from to subject message 
 		  &key (port 25) cc bcc reply-to extra-headers
 		       display-name authentication attachments buffer-size)
-  (let ((sock (socket-stream (make-smtp-socket host port)))
+  (let ((sock (usocket:socket-stream (usocket:socket-connect host port)))
 	(boundary (make-random-boundary)))
     (unwind-protect
 	(progn
@@ -153,7 +148,7 @@
       (error "wrong response from smtp server: ~A" msgstr)))
   (cond
    (authentication
-    (write-to-smtp sock (format nil "EHLO ~A" (get-host-name)))
+    (write-to-smtp sock (format nil "EHLO ~A" (usocket::get-host-name)))
     (multiple-value-bind (code msgstr)
 	 (read-from-smtp sock)
        (when (/= code 250)
@@ -189,7 +184,7 @@
       (error "authentication ~A is not supported in cl-smtp" 
 	     (car authentication)))))
     (t
-     (write-to-smtp sock (format nil "HELO ~A" (get-host-name)))
+     (write-to-smtp sock (format nil "HELO ~A" (usocket::get-host-name)))
      (multiple-value-bind (code msgstr)
 	 (read-from-smtp sock)
        (when (/= code 250)
@@ -201,8 +196,7 @@
     (write-to-smtp sock (format nil "RCPT TO:<~A>" to))
     (multiple-value-bind (code msgstr)
 	(read-from-smtp sock)
-      (when (/= code 250)
-	
+      (when (/= code 250)	
 	(error "in RCPT TO command: ~A" msgstr)))))
  
 
