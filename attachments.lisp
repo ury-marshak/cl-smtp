@@ -2,7 +2,7 @@
 	
 ;;; This file is part of CL-SMTP, the Lisp SMTP Client
 
-;;; Copyright (C) 2004/2005 Jan Idzikowski
+;;; Copyright (C) 2004/2005/2006/2007 Jan Idzikowski
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the Lisp Lesser General Public License
