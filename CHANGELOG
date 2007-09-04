@@ -1,5 +1,5 @@
-Version 20070628.1
-2007-06-28
+Version 20070904.1
+2007-09-04
 Remove implementation dependent sockets code by adding usocket dependency.
 Change cl-smtp.asd cl-smtp.lisp README INSTALL
  (remove acl.lisp clisp.lisp cmucl.lisp sbcl.lisp lispworks.lisp openmcl.lisp)
