@@ -2,6 +2,7 @@
 	
 ;;; This file is part of CL-SMTP, the Lisp SMTP Client
 
+
 ;;; Copyright (C) 2004/2005/2006/2007 Jan Idzikowski
 
 ;;; This library is free software; you can redistribute it and/or
@@ -80,6 +81,7 @@
                                    &key 
                                    (buffer-size 256) ;; in KB
                                    (wrap-at-column 76))
+  (declare (ignorable wrap-at-column))
   (let* ((max-buffer-size (* buffer-size 1024))
          (byte-count 0)
          (buffer (make-array max-buffer-size 
@@ -98,15 +100,22 @@
 				     (return i)
                                    (setf (aref buffer i) bchar))))) 
 	  (print-debug (format nil "~%** Byte Count ~a~%" byte-count))
-            ;; encode the buffer and write out to stream 
-            (cl-base64:usb8-array-to-base64-stream 
-             (if (< byte-count max-buffer-size)
-		 (trimmed-buffer byte-count buffer)
-	       buffer)
-             sock :columns wrap-at-column)
-            (force-output sock)
-            ;;-- when finished reading exit do loop 
-            (when (< byte-count max-buffer-size)
+	  ;; encode the buffer and write out to stream 
+	  #+allegro
+	  (write-string (excl:usb8-array-to-base64-string 
+			 (if (< byte-count max-buffer-size)
+			     (trimmed-buffer byte-count buffer)
+			     buffer)
+			 wrap-at-column) sock)
+	  #-allegro
+	  (s-base64:encode-base64-bytes 
+	   (if (< byte-count max-buffer-size)
+	       (trimmed-buffer byte-count buffer)
+	       buffer) 
+	   sock t)
+	  (force-output sock)
+	  ;;-- when finished reading exit do loop 
+	  (when (< byte-count max-buffer-size)
               (return)))))))
 
 (defun trimmed-buffer (byte-count buffer)
