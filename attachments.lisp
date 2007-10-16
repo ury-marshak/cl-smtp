@@ -103,16 +103,16 @@
 	  ;; encode the buffer and write out to stream 
 	  #+allegro
 	  (write-string (excl:usb8-array-to-base64-string 
-			 (if (< byte-count max-buffer-size)
-			     (trimmed-buffer byte-count buffer)
-			     buffer)
-			 wrap-at-column) sock)
+			   (if (< byte-count max-buffer-size)
+				(trimmed-buffer byte-count buffer)
+				buffer)
+			   wrap-at-column) sock)
 	  #-allegro
-	  (s-base64:encode-base64-bytes 
+	  (cl-base64:usb8-array-to-base64-stream 
 	   (if (< byte-count max-buffer-size)
 	       (trimmed-buffer byte-count buffer)
 	       buffer) 
-	   sock t)
+	   sock :columns wrap-at-column)
 	  (force-output sock)
 	  ;;-- when finished reading exit do loop 
 	  (when (< byte-count max-buffer-size)
