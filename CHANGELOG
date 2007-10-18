@@ -1,9 +1,14 @@
+Version 20071018.1
+2007.10.18
+Reverted the non allegro base64 functionality in attachment.lisp,
+now it is used cl-base64 again. Thanks Attila Lendvai for the bug report.
+Change attachments.lisp, cl-smtp.asd, CHANGELOG
+
 Version 20070904.1
 2007-09-04
 Remove implementation dependent sockets code by adding usocket dependency.
 Change cl-smtp.asd cl-smtp.lisp README INSTALL
  (remove acl.lisp clisp.lisp cmucl.lisp sbcl.lisp lispworks.lisp openmcl.lisp)
-
 
 Version 20060404.1
 2006-04-04

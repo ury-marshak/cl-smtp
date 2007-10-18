@@ -29,7 +29,7 @@
       (print ,str)))
 
 (asdf:defsystem :cl-smtp
-        :version "20070904.1"
+        :version "20071018.1"
 	:depends-on (:usocket #-allegro :cl-base64)
 	:components ((:file "cl-smtp" :depends-on ("attachments"))
 		     (:file "attachments")))
