@@ -29,7 +29,10 @@
       (print ,str)))
 
 (asdf:defsystem :cl-smtp
-        :version "20071018.1"
+        :version "20071104.1"
+	:perform (load-op :after (op webpage)
+			  (pushnew :cl-smtp cl:*features*))
 	:depends-on (:usocket #-allegro :cl-base64)
 	:components ((:file "cl-smtp" :depends-on ("attachments"))
-		     (:file "attachments")))
+		     (:file "attachments")
+		     (:file "mime-types")))

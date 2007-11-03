@@ -1,3 +1,13 @@
+Version 20071104.1
+2007.11.04 
+Fixed bug with the file attachments to solve corrupted files when
+processed with chunking turned on. (Brian Sorg)
+Added automatically including mime types for attachesments 
+of common known extensions. (Brian Sorg)
+Added Html-messages option to send-mail function. (Brian Sorg)
+Change attachments.lisp, cl-smtp.asd, cl-smtp.lisp, README, CHANGLOG
+Add mime-type.lisp
+
 Version 20071018.1
 2007.10.18
 Reverted the non allegro base64 functionality in attachment.lisp,

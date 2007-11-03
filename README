@@ -17,8 +17,8 @@ To use cl-smtp:
 ------------------------------------------------
 
 (cl-smtp:send-email host from to subject message
-                    &key (port 25) cc bcc reply-to extra-headers authentication
-                         attachments (buffer-size 256))
+                    &key (port 25) cc bcc reply-to extra-headers html-message 
+                    authentication attachments (buffer-size 256))
 
  Arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
@@ -32,6 +32,7 @@ To use cl-smtp:
   - reply-to (String)              : email adress
   - displayname (String)           : displayname of the sender
   - extra-headers (Cons)           : extra headers as alist
+  - html-message (String)          : message body formatted with HTML tags
   - authentication (Cons)          : list with 3 elements
                                      (:method "username" "password")
                                      method is a keyword :plain or :login
