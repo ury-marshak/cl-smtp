@@ -90,9 +90,10 @@
 	(progn
 	  (open-smtp-connection sock :authentication authentication)
 	  (send-smtp-headers sock :from from :to to :cc cc :bcc bcc :reply-to reply-to :display-name display-name :extra-headers extra-headers :subject subject)
-	  (send-multipart-headers 
-	   sock :attachment-boundary (when attachments boundary) 
-	   :html-boundary html-boundary)
+	  (when (or attachments html-message)
+	    (send-multipart-headers 
+	     sock :attachment-boundary (when attachments boundary) 
+	     :html-boundary html-boundary))
 	  ;;----------- Send  the body Message ---------------------------
           ;;--- Send the proper headers depending on plain-text, 
           ;;--- multi-part or html email 
