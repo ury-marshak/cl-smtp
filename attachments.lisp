@@ -133,9 +133,9 @@ Wrap-at-column controls where the encode string is divided for line breaks."
 		      #-allegro
 		      (cl-base64:usb8-array-to-base64-stream 
 		       buffer sock :columns wrap-at-column)
-		    ;; otherwise process file in chunks. 
+		      ;; otherwise process file in chunks. 
                     ;; The extra encoded-string, 
-		    ;; and its subseq functions are brute force methods
+		      ;; and its subseq functions are brute force methods
                     ;; to properly handle the wrap-at-column feature 
                     ;; between buffers. 
                     ;; Not the most efficient way,
@@ -148,7 +148,7 @@ Wrap-at-column controls where the encode string is divided for line breaks."
 					       buffer))
 			   (encoded-string 
 			    #+allegro
-			     (cl-base64:usb8-array-to-base64-string 
+			     (excl:usb8-array-to-base64-string 
 			      trimmed-buffer)
 			    #-allegro
 			    (cl-base64:usb8-array-to-base64-string 

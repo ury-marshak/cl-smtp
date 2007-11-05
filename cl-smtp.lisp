@@ -89,7 +89,10 @@
     (unwind-protect
 	(progn
 	  (open-smtp-connection sock :authentication authentication)
-	  (send-smtp-headers sock :from from :to to :cc cc :bcc bcc :reply-to reply-to :display-name display-name :extra-headers extra-headers :subject subject)
+	  (send-smtp-headers sock :from from :to to :cc cc :bcc bcc 
+                            :reply-to reply-to
+                            :display-name display-name 
+                            :extra-headers extra-headers :subject subject)
 	  (when (or attachments html-message)
 	    (send-multipart-headers 
 	     sock :attachment-boundary (when attachments boundary) 
@@ -139,8 +142,7 @@
               (send-attachment sock attachment boundary buffer-size))
             (send-end-marker sock boundary))
 	  (write-char #\. sock)
-	  (write-char #\Return sock)
-	  (write-char #\NewLine sock)
+         (write-blank-line sock)
 	  (force-output sock)
 	  (multiple-value-bind (code msgstr)
 	      (read-from-smtp sock)
