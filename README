@@ -6,6 +6,8 @@ new with support for send attachments, thanks Brian Sorg for the implementation
 
 with authentication support for PLAIN and LOGIN authentication method
 
+and ssl support with cl+ssl package
+
 used cl-base64 and usocket packages (cl-base64 isn't a requirement on ACL)
 
 See INSTALL for prerequisites and build details.
@@ -18,7 +20,7 @@ To use cl-smtp:
 
 (cl-smtp:send-email host from to subject message
                     &key (port 25) cc bcc reply-to extra-headers html-message 
-                    authentication attachments (buffer-size 256))
+                    authentication attachments (buffer-size 256) ssl)
 
  Arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
@@ -41,7 +43,8 @@ To use cl-smtp:
   - buffer-size (Number default 256): controls how much of a attachment file
                                       is read on each loop before encoding 
                                       and transmitting the contents, 
-                                      the number is interpretted in KB  
+                                      the number is interpretted in KB 
+  - ssl (Boolean)                   : if true than use the STARTTLS functionality to make a ssl connection
 
 Returns nil or error with message
 
