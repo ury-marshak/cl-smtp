@@ -16,25 +16,18 @@
 ;;; File: cl-smtp.asd
 ;;; Description: cl-smtp ASDF system definition file
 
-(defpackage :cl-smtp
-   	(:use :cl :asdf)
-	(:export :send-email))
-
-(in-package :cl-smtp)
-
-(defparameter *debug* nil)
-
-(defmacro print-debug (str)
-  `(when *debug*
-      (print ,str)))
-
 (asdf:defsystem :cl-smtp
-       :version "20071113.1"
-	:perform (load-op :after (op webpage)
-			  (pushnew :cl-smtp cl:*features*))
-	:depends-on (:usocket #-allegro :cl-base64 
-			      #-allegro :flexi-streams
-			      #-allegro :cl+ssl)
-	:components ((:file "cl-smtp" :depends-on ("attachments"))
-                    (:file "attachments")
-                    (:file "mime-types")))
+  :version "20080202.1"
+  :perform (load-op :after (op webpage)
+                    (pushnew :cl-smtp cl:*features*))
+  :depends-on (:usocket 
+               :trivial-gray-streams
+               :flexi-streams
+               #-allegro :cl-base64 
+               #-allegro :cl+ssl)
+  :serial t
+  :components ((:file "package")
+               (:file "attachments")
+               (:file "cl-smtp")
+               (:file "smtp-output-stream")
+               (:file "mime-types")))

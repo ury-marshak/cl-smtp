@@ -1,3 +1,13 @@
+Version 20080202.1
+2007.02.02
+Added support for sending raw messages. (Hans Huebner)
+Fixed STARTTLS so that an EHLO command is sent after STARTTLS. (Hans Huebner)
+Changed Authentication functionality, the actual authentication method used is determined by looking at the advertised features of the SMTP server. (Hans Huebner)
+Added non-ASCII character quoting in email headers (according to RFC2047). (Hans Huebner)
+Added condition classes for error reporting. (Hans Huebner)
+Change cl-smtp.lisp, cl-smtp.asd, CHANGELOG
+Add smtp-output-stream.lisp
+
 Version 20071113.1
 2007.11.13
 Add SSL support, thank Timothy Ritchey for the suggestions.

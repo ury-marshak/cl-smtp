@@ -25,26 +25,29 @@ To use cl-smtp:
  Arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
   - from (String)                  : email adress 
-  - to (String or Cons of Strings) : email adress 
+  - to (String or List of Strings) : email adress 
   - subject (String)               : subject text
   - message (String)               : message body
   keywords:
-  - cc (String or Cons of Strings) : email adress carbon copy
-  - bcc (String or Cons of Strings): email adress blind carbon copy
+  - cc (String or List of Strings) : email adress carbon copy
+  - bcc (String or List of Strings): email adress blind carbon copy
   - reply-to (String)              : email adress
   - displayname (String)           : displayname of the sender
-  - extra-headers (Cons)           : extra headers as alist
+  - extra-headers (List)           : extra headers as alist
   - html-message (String)          : message body formatted with HTML tags
-  - authentication (Cons)          : list with 3 elements
-                                     (:method "username" "password")
+  - authentication (List)          : list with 2 or elements
+                                     ([:method] "username" "password")
                                      method is a keyword :plain or :login
+                                     If the method is not specified, the
+                                     proper method is determined automatically.
   - attachments (String or Pathname: attachments to send
-                Cons of String/Pathnames)
+                List of String/Pathnames)
   - buffer-size (Number default 256): controls how much of a attachment file
                                       is read on each loop before encoding 
                                       and transmitting the contents, 
-                                      the number is interpretted in KB 
-  - ssl (Boolean)                   : if true than use the STARTTLS functionality to make a ssl connection
+                                      the number is interpreted in KB 
+  - ssl (or t :starttls :tls)       : if t or :STARTTLS: use the STARTTLS functionality
+                                      if :TLS: use TLS directly
 
 Returns nil or error with message
 
