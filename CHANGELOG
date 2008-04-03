@@ -1,5 +1,5 @@
-Version 20080202.1
-2007.02.02
+Version 20080402.1
+2007.04.02
 Added support for sending raw messages. (Hans Huebner)
 Fixed STARTTLS so that an EHLO command is sent after STARTTLS. (Hans Huebner)
 Changed Authentication functionality, the actual authentication method used is determined by looking at the advertised features of the SMTP server. (Hans Huebner)
