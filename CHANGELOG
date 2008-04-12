@@ -1,5 +1,10 @@
+Version 20080412.1
+2008.04.12
+Fixed TLS directly functionality, switch to ssl stream bevor read from stream.
+Change cl-smtp.lisp, cl-smtp.asd, CHANGELOG
+
 Version 20080402.1
-2007.04.02
+2008.04.02
 Added support for sending raw messages. (Hans Huebner)
 Fixed STARTTLS so that an EHLO command is sent after STARTTLS. (Hans Huebner)
 Changed Authentication functionality, the actual authentication method used is determined by looking at the advertised features of the SMTP server. (Hans Huebner)

@@ -266,12 +266,10 @@
    to use further down in the conversation, which may be different from
    the original stream if we switched to SSL."
 
-  ;; Read the initial greeting from the SMTP server
-  (smtp-command stream nil
-                220)
-
   (unless (or ssl authentication)
     ;; Unless we want ESMTP features, perform classic SMTP handshake and return
+    ;; Read the initial greeting from the SMTP server
+    (smtp-command stream nil 220)
     (smtp-command stream (format nil "HELO ~A" 
                                    (usocket::get-host-name))
                   250)
@@ -280,7 +278,10 @@
   ;; When SSL or authentication requested, perform ESMTP EHLO
   (let (features)
     (labels
-        ((do-ehlo ()
+        ((read-greetings ()
+	   ;; Read the initial greeting from the SMTP server
+	   (smtp-command stream nil 220))
+	 (do-ehlo ()
            (setf features (rest (smtp-command stream (format nil "EHLO ~A" local-hostname)
                                               250))))
          (convert-connection-to-ssl ()
@@ -299,6 +300,7 @@
                           :latin-1 :eol-style :lf)))))
       (ecase ssl
         ((or t :starttls)
+	 (read-greetings)
          (do-ehlo)
          (unless (find "STARTTLS" features :test #'equal)
            (error "this server does not supports TLS"))
@@ -313,8 +315,10 @@
         (:tls
          ;; Plain SSL connection
          (convert-connection-to-ssl)
+	 (read-greetings)
          (do-ehlo))
         ((nil)
+	 (read-greetings)
          (do-ehlo))))
     (when authentication
       (smtp-authenticate stream authentication features)))
