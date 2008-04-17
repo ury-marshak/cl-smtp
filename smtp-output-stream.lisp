@@ -41,7 +41,7 @@
     :reader external-format)))
 
 (defmethod stream-element-type ((stream smtp-output-stream))
-  (stream-element-type (stream stream)))
+  (stream-element-type (encapsulated-stream stream)))
 
 (defmethod close ((stream smtp-output-stream) &key abort)
   (close (encapsulated-stream stream) :abort abort))

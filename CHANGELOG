@@ -1,3 +1,8 @@
+Version 20080417.1
+2008.04.17
+Fixed stream-element-type. Thanks Attila Lendvai for the bug report.
+Change smtp-output-stream, cl-smtp.asd, CHANGELOG
+
 Version 20080412.1
 2008.04.12
 Fixed TLS directly functionality, switch to ssl stream bevor read from stream.
