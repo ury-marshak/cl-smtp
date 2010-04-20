@@ -164,4 +164,5 @@ Wrap-at-column controls where the encode string is divided for line breaks."
 		  (print-debug (format nil "~% Eof is ~a~%" eof?))
 		  (when (or (zerop buffer-size)
 			    eof?)
+                    (write-blank-line sock)
 		    (return))))))))
