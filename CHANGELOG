@@ -1,3 +1,9 @@
+Version 20100420.1
+2010.04.20
+Fixed error when send more than 1 attachment, 
+added a blank line between attachments.
+Change base64-encode-file, attachments.lisp, CHANGELOG
+
 Version 20080417.1
 2008.04.17
 Fixed stream-element-type. Thanks Attila Lendvai for the bug report.
