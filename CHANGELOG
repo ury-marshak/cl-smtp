@@ -1,3 +1,9 @@
+Version 20100422.1
+2010.04.22
+Fixed encoding errors in header strings,
+new function q-encode-str to encode strings in header
+Change cl-smtp.lisp, CHANGELOG
+
 Version 20100420.1
 2010.04.20
 Fixed error when send more than 1 attachment, 

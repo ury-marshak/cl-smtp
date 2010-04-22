@@ -62,6 +62,28 @@
   #+allegro (excl:string-to-base64-string str)
   #-allegro (cl-base64:string-to-base64-string str))
 
+(defun q-encode-str (str &key (external-format 
+                               (flex:make-external-format :iso-8859-15)))
+  (let ((line-has-non-ascii nil))
+    (with-output-to-string (s)
+      (loop for c across str do
+           (cond
+             ((< 127 (char-code c))
+              (unless line-has-non-ascii
+                (format s "=?~A?Q?" (flex:external-format-name external-format))
+                (setf line-has-non-ascii t))
+              (loop for byte across (flex:string-to-octets 
+                                     (make-string 1 :initial-element c)
+                                     :external-format external-format)
+                 do (format s "=~2,'0X" byte)))
+             (t 
+              (when line-has-non-ascii
+                (format s "?=")
+                (setf line-has-non-ascii nil))
+              (format s "~C" c))))
+      (when line-has-non-ascii
+        (format s "?=")))))
+
 (define-condition smtp-error (error)
   ())
 
@@ -104,7 +126,13 @@
     lines))
 
 (defun do-with-smtp-mail (host from to thunk &key port authentication ssl local-hostname)
-  (usocket:with-client-socket (socket stream host port)
+  (usocket:with-client-socket (socket stream host port 
+                                      :element-type '(unsigned-byte 8))
+    (setf stream (flexi-streams:make-flexi-stream 
+                                 stream
+                                 :external-format 
+                                 (flexi-streams:make-external-format 
+                                  :latin-1 :eol-style :lf)))
     (let ((stream (smtp-handshake stream
                                   :authentication authentication 
                                   :ssl ssl
@@ -155,6 +183,7 @@
                           :authentication authentication 
                           :ssl ssl
                           :local-hostname local-hostname)
+    (setf (in-header stream) nil)
     (let* ((boundary (make-random-boundary))
            (html-boundary (if (and attachments html-message)
                               (make-random-boundary)
@@ -288,9 +317,9 @@
            (setf stream 
                  #+allegro (socket:make-ssl-client-stream stream)
                  #-allegro
-                 (let ((s stream))
+                 (let ((s (flexi-streams:flexi-stream-stream stream)))
                    (cl+ssl:make-ssl-client-stream 
-                    (cl+ssl:stream-fd stream)
+                    (cl+ssl:stream-fd s)
                     :close-callback (lambda () (close s)))))
            #-allegro
            (setf stream (flexi-streams:make-flexi-stream 
@@ -360,14 +389,16 @@
    server connected to on STREAM.  The server is expected to have
    previously accepted the DATA SMTP command."
   (write-to-smtp stream (format nil "Date: ~A" (get-email-date-string)))
-  (write-to-smtp stream (format nil "From: ~@[~A <~]~A~@[>~]" 
-				display-name from display-name))
+  (if display-name
+      (write-to-smtp stream (format nil "From: ~A <~A>" 
+				(q-encode-str display-name) from))
+      (write-to-smtp stream (format nil "From: ~A" from)))
   (write-to-smtp stream (format nil "To: ~{ ~a~^,~}" to))
   (when cc
     (write-to-smtp stream (format nil "Cc: ~{ ~a~^,~}" cc)))
-  (write-to-smtp stream (format nil "Subject: ~A" subject))
+  (write-to-smtp stream (format nil "Subject: ~A" (q-encode-str subject)))
   (write-to-smtp stream (format nil "X-Mailer: cl-smtp ~A" 
-				*x-mailer*))
+				(q-encode-str *x-mailer*)))
   (when reply-to
     (write-to-smtp stream (format nil "Reply-To: ~A" reply-to)))
   (when (and extra-headers
@@ -388,7 +419,7 @@
 
 (defun write-to-smtp (stream command)
   (print-debug (format nil "to server: ~A" command)) 
-  (write-string command stream)
+  (write-sequence command stream)
   (write-char #\Return stream)
   (write-char #\NewLine stream)
   (force-output stream))
