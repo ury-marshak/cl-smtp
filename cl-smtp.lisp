@@ -2,7 +2,7 @@
 	
 ;;; This file is part of CL-SMTP, the Lisp SMTP Client
 
-;;; Copyright (C) 2004/2005/2006/2007 Jan Idzikowski
+;;; Copyright (C) 2004/2005/2006/2007/2008/2009/2010 Jan Idzikowski
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the Lisp Lesser General Public License
@@ -17,8 +17,6 @@
 ;;; Description: main smtp client logic
 
 (in-package :cl-smtp)
-
-(defparameter *content-type* "text/plain; charset=ISO-8859-1")
 
 (defparameter *x-mailer* (format nil "(~A ~A)" 
 				 (lisp-implementation-type)
@@ -38,7 +36,8 @@
   (defvar *line-with-one-dot* #.(format nil "~C~C.~C~C" #\Return #\NewLine
                                         #\Return #\NewLine))
   (defvar *line-with-two-dots* #.(format nil "~C~C..~C~C" #\Return #\NewLine
-                                         #\Return #\NewLine)))
+                                         #\Return #\NewLine))
+  (defvar *return-newline* #.(format nil "~C~C" #\Return #\NewLine)))
 
 (defun mask-dot (str)
   "Replace all occurences of \r\n.\r\n in STR with \r\n..\r\n"
@@ -62,19 +61,20 @@
   #+allegro (excl:string-to-base64-string str)
   #-allegro (cl-base64:string-to-base64-string str))
 
-(defun q-encode-str (str &key (external-format 
-                               (flex:make-external-format :iso-8859-15)))
-  (let ((line-has-non-ascii nil))
+(defun rfc2045-q-encode-string (str &key (external-format :utf-8))
+  (let ((line-has-non-ascii nil)
+        (exformat (flex:make-external-format external-format)))
     (with-output-to-string (s)
       (loop for c across str do
            (cond
              ((< 127 (char-code c))
               (unless line-has-non-ascii
-                (format s "=?~A?Q?" (flex:external-format-name external-format))
+                (format s "=?~A?Q?" 
+                        (string-upcase (symbol-name external-format)))
                 (setf line-has-non-ascii t))
               (loop for byte across (flex:string-to-octets 
                                      (make-string 1 :initial-element c)
-                                     :external-format external-format)
+                                     :external-format exformat)
                  do (format s "=~2,'0X" byte)))
              (t 
               (when line-has-non-ascii
@@ -83,6 +83,23 @@
               (format s "~C" c))))
       (when line-has-non-ascii
         (format s "?=")))))
+
+(defun substitute-return-newline (str)
+  "Replace all occurences of \r\n in STR with spaces"
+  (let ((resultstr ""))
+    (labels ((mask (tempstr)
+	       (let ((n (search *return-newline* tempstr)))
+		 (cond
+                   (n
+                    (setf resultstr (concatenate 'string resultstr 
+                                                 (subseq tempstr 0 n)
+                                                 " "))
+                    (mask (subseq tempstr (+ n 2))))
+                   (t
+                    (setf resultstr (concatenate 'string resultstr 
+                                                 tempstr)))))))
+      (mask str))
+    resultstr))
 
 (define-condition smtp-error (error)
   ())
@@ -94,9 +111,10 @@
    (response-message :initarg :response-message :reader response-message))
   (:report (lambda (condition stream)
              (print-unreadable-object (condition stream :type t)
-               (format stream "a command failed:~%command: ~S expected: ~A response: ~A"
+               (format stream "a command failed:~%command: ~S expected: ~A response-code: ~A response-message: ~A"
                        (command condition)
                        (expected-response-code condition)
+                       (response-code condition)
                        (response-message condition))))))
 
 (define-condition rcpt-failed (smtp-protocol-error)
@@ -125,23 +143,24 @@
                            :response-message msgstr))))
     lines))
 
-(defun do-with-smtp-mail (host from to thunk &key port authentication ssl local-hostname)
+(defun do-with-smtp-mail (host from to thunk &key port authentication ssl 
+                          local-hostname (external-format :utf-8))
   (usocket:with-client-socket (socket stream host port 
                                       :element-type '(unsigned-byte 8))
     (setf stream (flexi-streams:make-flexi-stream 
-                                 stream
-                                 :external-format 
-                                 (flexi-streams:make-external-format 
-                                  :latin-1 :eol-style :lf)))
+                  stream
+                  :external-format 
+                  (flexi-streams:make-external-format 
+                   external-format :eol-style :lf)))
     (let ((stream (smtp-handshake stream
                                   :authentication authentication 
                                   :ssl ssl
                                   :local-hostname local-hostname)))
       (initiate-smtp-mail stream from to)
-      (funcall thunk  (make-instance 'smtp-output-stream :encapsulated-stream stream))
+      (funcall thunk stream)
       (finish-smtp-mail stream))))
 
-(defmacro with-smtp-mail ((stream-var host from to &key ssl (port (if (eq :tls ssl) 465 25)) authentication local-hostname)
+(defmacro with-smtp-mail ((stream-var host from to &key ssl (port (if (eq :tls ssl) 465 25)) authentication local-hostname (external-format :utf-8))
                           &body body)
   "Encapsulate a SMTP MAIl conversation.  A connection to the SMTP
    server on HOST and PORT is established and a MAIL command is
@@ -154,12 +173,13 @@
                       :port ,port
                       :authentication ,authentication 
                       :ssl ,ssl
-                      :local-hostname ,local-hostname))
+                      :local-hostname ,local-hostname
+                      :external-format ,external-format))
 
 (defun send-email (host from to subject message 
 		   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc reply-to extra-headers
 		   html-message display-name authentication
-		   attachments (buffer-size 256))
+		   attachments (buffer-size 256) (external-format :utf-8))
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
 	     :port port :cc (check-arg cc "cc") :bcc (check-arg bcc "bcc")
 	     :reply-to reply-to 
@@ -171,23 +191,28 @@
 	     :buffer-size (if (numberp buffer-size) 
 			      buffer-size
 			      256)
+             :external-format external-format
 	     :ssl ssl))
 
 (defun send-smtp (host from to subject message
                   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc
 		  reply-to extra-headers html-message display-name
 		  authentication attachments buffer-size
-                  (local-hostname (usocket::get-host-name)))
+                  (local-hostname (usocket::get-host-name))
+                  (external-format :utf-8))
   (with-smtp-mail (stream host from (append to cc bcc)
                           :port port
                           :authentication authentication 
                           :ssl ssl
-                          :local-hostname local-hostname)
-    (setf (in-header stream) nil)
+                          :local-hostname local-hostname
+                          :external-format external-format)
     (let* ((boundary (make-random-boundary))
            (html-boundary (if (and attachments html-message)
                               (make-random-boundary)
-                              boundary)))
+                              boundary))
+           (content-type 
+            (format nil "text/plain; charset=~S" 
+                    (string-upcase (symbol-name external-format)))))
       (send-mail-headers stream
                          :from from
                          :to to
@@ -213,19 +238,19 @@
                                           :multipart-type "alternative")
                (write-blank-line stream)
                (generate-message-header 
-                stream :boundary html-boundary :content-type *content-type* 
+                stream :boundary html-boundary :content-type content-type 
                 :content-disposition "inline" :include-blank-line? nil)))
             (attachments 
              (generate-message-header 
               stream :boundary boundary 
-              :content-type *content-type* :content-disposition "inline"
+              :content-type content-type :content-disposition "inline"
               :include-blank-line? nil))
             (html-message
              (generate-message-header 
-              stream :boundary html-boundary :content-type *content-type* 
+              stream :boundary html-boundary :content-type content-type 
               :content-disposition "inline"))
             (t 
-             (generate-message-header stream :content-type *content-type*
+             (generate-message-header stream :content-type content-type
                                       :include-blank-line? nil)))
       (write-blank-line stream)
       (write-to-smtp stream message)
@@ -234,14 +259,16 @@
       (when html-message
         (generate-message-header 
          stream :boundary html-boundary 
-         :content-type "text/html; charset=ISO-8859-1" 
+         :content-type (format nil "text/html; charset=~S" 
+                               (string-upcase (symbol-name external-format)))
          :content-disposition "inline")
         (write-to-smtp stream html-message)
         (send-end-marker stream html-boundary))
       ;;---------- Send Attachments -----------------------------------
       (when attachments
         (dolist (attachment attachments)
-          (send-attachment stream attachment boundary buffer-size))
+          (send-attachment stream attachment boundary buffer-size 
+                           external-format))
         (send-end-marker stream boundary)))))
 
 (define-condition no-supported-authentication-method (smtp-error)
@@ -300,7 +327,7 @@
     ;; Read the initial greeting from the SMTP server
     (smtp-command stream nil 220)
     (smtp-command stream (format nil "HELO ~A" 
-                                   (usocket::get-host-name))
+                                 (usocket::get-host-name))
                   250)
     (return-from smtp-handshake stream))
 
@@ -362,11 +389,12 @@
    is signalled.  This condition may be handled by the caller in order
    to send the email anyway."
   (smtp-command stream 
-                (format nil "MAIL FROM:<~A>" from)
+                (format nil "MAIL FROM:<~A>" (substitute-return-newline from))
                 250)
   (dolist (address to)
     (restart-case 
-        (smtp-command stream (format nil "RCPT TO:<~A>" address)
+        (smtp-command stream (format nil "RCPT TO:<~A>" 
+                                     (substitute-return-newline address))
                       250
                       :condition-class 'rcpt-failed
                       :condition-arguments (list :recipient address))
@@ -384,23 +412,31 @@
 
 (defun send-mail-headers (stream 
 			  &key from to cc reply-to 
-			  extra-headers display-name subject)
+			  extra-headers display-name subject 
+                          (external-format :utf-8))
   "Send email headers according to the given arguments to the SMTP
    server connected to on STREAM.  The server is expected to have
    previously accepted the DATA SMTP command."
   (write-to-smtp stream (format nil "Date: ~A" (get-email-date-string)))
   (if display-name
       (write-to-smtp stream (format nil "From: ~A <~A>" 
-				(q-encode-str display-name) from))
+                                    (rfc2045-q-encode-string 
+                                     display-name :external-format external-format)
+                                    from))
       (write-to-smtp stream (format nil "From: ~A" from)))
   (write-to-smtp stream (format nil "To: ~{ ~a~^,~}" to))
   (when cc
     (write-to-smtp stream (format nil "Cc: ~{ ~a~^,~}" cc)))
-  (write-to-smtp stream (format nil "Subject: ~A" (q-encode-str subject)))
-  (write-to-smtp stream (format nil "X-Mailer: cl-smtp ~A" 
-				(q-encode-str *x-mailer*)))
+  (write-to-smtp stream (format nil "Subject: ~A" 
+                                (rfc2045-q-encode-string 
+                                 subject :external-format external-format)))
+  (write-to-smtp stream (format nil "X-Mailer: cl-smtp~A" 
+				(rfc2045-q-encode-string 
+                                 *x-mailer* :external-format external-format)))
   (when reply-to
-    (write-to-smtp stream (format nil "Reply-To: ~A" reply-to)))
+    (write-to-smtp stream (format nil "Reply-To: ~A" 
+                                  (rfc2045-q-encode-string 
+                                   reply-to :external-format external-format))))
   (when (and extra-headers
 	     (listp extra-headers))
     (dolist (l extra-headers)

@@ -3,7 +3,7 @@
 ;;; This file is part of CL-SMTP, the Lisp SMTP Client
 
 
-;;; Copyright (C) 2004/2005/2006/2007 Jan Idzikowski
+;;; Copyright (C) 2004/2005/2006/2007/2008/2009/2010 Jan Idzikowski
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the Lisp Lesser General Public License
@@ -69,24 +69,91 @@
 				content-transfer-encoding)))
   (when include-blank-line? (write-blank-line sock)))
 
-(defun send-attachment-header (sock boundary name)
+(defun escape-rfc822-quoted-string (str)
+  (with-output-to-string (s)
+    (loop
+       for c across str do
+       (when (find (char-code c) '(10 13 92 34))
+	 (write-char #\\ s))
+       (write-char c s))))
 
-  (generate-message-header 
-   sock 
-   :boundary boundary
-   :content-type (format nil "~a;~%~tname=\"~a\"" (lookup-mime-type name) name)
-   :content-transfer-encoding "base64"
-   :content-disposition (format nil "attachment; filename=\"~a\"" name)))
+(defun rfc2231-encode-string (string &key (external-format :utf-8))
+  (with-output-to-string (s)
+    (format s "~A''" (string-upcase (symbol-name external-format)))
+    (loop for n across (string-to-octets string
+                                         :external-format external-format)
+          for c = (code-char n)
+          do (cond ((or (char<= #\0 c #\9)
+                        (char<= #\a c #\z)
+                        (char<= #\A c #\Z)
+                        (find c "$-_.!*'()," :test #'char=))
+                     (write-char c s))
+                   ((char= c #\Space)
+                     (write-char #\+ s))
+                   (t (format s "%~2,'0x" (char-code c)))))))
+
+(defun send-attachment-header (sock boundary attachment external-format)
+  (let ((quoted-name
+         (escape-rfc822-quoted-string 
+          (rfc2045-q-encode-string (attachment-name attachment) 
+                                   :external-format external-format)))
+        (quoted-name*
+	 (escape-rfc822-quoted-string 
+          (rfc2231-encode-string (attachment-name attachment) 
+                                 :external-format external-format))))
+    (generate-message-header 
+     sock 
+     :boundary boundary
+     :content-type (format nil "~A;~%~tname*=~A;~%~tname=~S"
+			   (attachment-mime-type attachment)
+			   quoted-name* quoted-name)
+     :content-transfer-encoding "base64"
+     :content-disposition (format nil "attachment; filename*=~A; filename=~S"
+				  quoted-name* quoted-name))))
 
 (defun send-end-marker (sock boundary)
   ;; Note the -- at beginning and end of boundary is required
   (write-to-smtp sock (format nil "~%--~a--~%" boundary)))
 
-(defun send-attachment (sock attachment boundary buffer-size)
-  (when (probe-file attachment)
-    (let ((name (file-namestring attachment)))
-      (send-attachment-header sock boundary name)
-      (base64-encode-file attachment sock :buffer-size buffer-size))))
+(defclass attachment ()
+  ((name :initarg :name
+	 :accessor attachment-name)
+   (data-pathname :initarg :data-pathname
+	 :accessor attachment-data-pathname)
+   (mime-type :initarg :mime-type
+	      :accessor attachment-mime-type)))
+
+(defun make-attachment (data-pathname
+			&key (name (file-namestring data-pathname))
+			     (mime-type (lookup-mime-type name)))
+  (make-instance 'attachment
+		 :data-pathname data-pathname
+		 :name name
+		 :mime-type mime-type))
+
+(defmethod attachment-name ((attachment pathname))
+  (file-namestring attachment))
+
+(defmethod attachment-data-pathname ((attachment pathname))
+  attachment)
+
+(defmethod attachment-mime-type ((attachment pathname))
+  (lookup-mime-type (namestring attachment)))
+
+(defmethod attachment-name ((attachment string))
+  (file-namestring attachment))
+
+(defmethod attachment-data-pathname ((attachment string))
+  attachment)
+
+(defmethod attachment-mime-type ((attachment string))
+  (lookup-mime-type attachment))
+
+(defun send-attachment (sock attachment boundary buffer-size external-format)
+  (send-attachment-header sock boundary attachment external-format)
+  (base64-encode-file (attachment-data-pathname attachment)
+		      sock
+		      :buffer-size buffer-size))
 
 (defun base64-encode-file (file-in sock
                                    &key 

@@ -21,14 +21,17 @@ To use cl-smtp:
 (cl-smtp:send-email host from to subject message
                     &key (port 25) cc bcc reply-to extra-headers html-message 
                     authentication attachments (buffer-size 256) ssl)
+Send email.
 
- Arguments:
+Returns nil or error with message
+
+ arguments:
   - host (String)                  : hostname or ip-adress of the smtpserver
   - from (String)                  : email adress 
   - to (String or List of Strings) : email adress 
   - subject (String)               : subject text
   - message (String)               : message body
-  keywords:
+ keywords:
   - cc (String or List of Strings) : email adress carbon copy
   - bcc (String or List of Strings): email adress blind carbon copy
   - reply-to (String)              : email adress
@@ -40,16 +43,70 @@ To use cl-smtp:
                                      method is a keyword :plain or :login
                                      If the method is not specified, the
                                      proper method is determined automatically.
-  - attachments (String or Pathname: attachments to send
-                List of String/Pathnames)
+  - attachments (Attachment Instance or String or Pathname: attachments to send
+                List of Attachment/String/Pathnames)
   - buffer-size (Number default 256): controls how much of a attachment file
                                       is read on each loop before encoding 
                                       and transmitting the contents, 
                                       the number is interpreted in KB 
   - ssl (or t :starttls :tls)       : if t or :STARTTLS: use the STARTTLS functionality
                                       if :TLS: use TLS directly
+  - external-format                 : symbol, default :utf-8
 
-Returns nil or error with message
+------------------------------------------------
+
+(cl-smtp:rfc2045-q-encode-string str &key (external-format :utf8))
+
+Decodes a string to an quoted-printable string.
+
+Returns quoted-printable string
+
+ arguments:
+  - str                             : the string to encode
+ keywords:
+  - external-format                 : symbol, default :utf-8
+
+------------------------------------------------
+
+(cl-smtp:rfc2231-encode-string str &key (external-format :utf8))
+
+Decodes a string to an rfc2231 encode string.
+
+Returns  rfc2231 encode string
+
+ arguments:
+  - str                             : the string to encode
+ keywords:
+  - external-format                 : symbol, default :utf-8
+
+------------------------------------------------
+CLASS
+cl-smtp:attachment 
+
+ - accessor: attachment-name          : string 
+ - accessor: attachment-data-pathname : pathname
+ - accessor: attachment-mime-type     : string (mime-type)
+
+It is now possible to send a file under a different name.
+See cl-smtp:make-attachment.
+------------------------------------------------
+
+(cl-smtp:make-attachment data-pathname
+			 &key (name (file-namestring data-pathname))
+			      (mime-type (lookup-mime-type name)))
+
+Create a instance of cl-smtp:attachment.
+
+Returns cl-smtp:attachment
+
+ arguments:
+  - data-pathname                     : pathname
+ keywords:
+  - name                              : string, 
+                                        default (file-namestring data-pathname)
+  - mime-type                         : string,
+                                        default (lookup-mime-type name)
+------------------------------------------------
 
 For debug output set the parameter *debug* to t (default nil)
 (setf cl-smtp::*debug* t)

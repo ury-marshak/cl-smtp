@@ -1,7 +1,23 @@
+Version 20100505.1
+2010.05.05
+Rewrite encoding functions, now it is possible to use non ascii characters in
+header values and in attachment filenames.
+New keyword argument external-format (default :utf-8).
+New class attachment, with slots attachment-name and 
+attachment-mime-type, and a constructor function make-attachment.
+Rename q-encode-str to rfc2045-q-encode-string.
+Add rfc2231-encode-string to encode non ascii characters 
+in attachment filenames.
+Add tests for encoding functions, see tests.lisp.
+Change cl-smtp.lisp, attachment.lisp, package.lisp, 
+       cl-smtp.asd, CHANGELOG, README
+Add tests.lisp
+Remove smtp-output-stream.lisp
+
 Version 20100422.1
 2010.04.22
 Fixed encoding errors in header strings,
-new function q-encode-str to encode strings in header
+new function q-encode-str to encode strings in header.
 Change cl-smtp.lisp, CHANGELOG
 
 Version 20100420.1
