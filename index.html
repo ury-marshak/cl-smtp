@@ -17,7 +17,9 @@
 
  <p>CL-SMTP is a simple lisp Networking Library that provides SMTP client protocol, supported LOGIN and PLAIN authentication methods.</p>
 
- <p><b>New Version</b> [20071018.1] Reverted the non allegro base64 functionality in attachment.lisp, now it is used cl-base64 again. Thanks Attila Lendvai for the bug report.</p>
+ <p><b>New Version</b> [20100505.1] Rewrite encoding functions, now it is possible to use non ascii characters in header values and in attachment filenames.</p>
+
+ <p><b>Documentation</b> see the README file.</p>
 
  <h3>Download</h3>
 
@@ -32,7 +34,7 @@ browse our CVS repository</a> or download the current development tree via
 
  <h3>Portability</h3>
 
- <p>CL-SMTP requires USOCKET and CL-BASE64 (CL-BASE64 isn't a requirement on ACL)</p>
+ <p>CL-SMTP requires USOCKET, FLEXI-STREAMS, TRIVIAL-GRAY-STREAMS, CL+SSL and CL-BASE64 (CL+SSL and CL-BASE64 isn't a requirement on ACL)</p>
  <p>It works in all implementations supported by its dependencies (Allegro, SBCL, CMU CL, OpenMCL, Lispworks, CLISP and ECL).</p>
  <p>Test results for Linux/x86/amd64:</p>
  <table cellspacing="0" cellpadding="2" border="1">
