@@ -58,7 +58,7 @@
 
 (defun string-to-base64-string (str)
   (declare (ignorable str))
-  #+allegro (excl:string-to-base64-string str)
+  #+allegro (excl:string-to-base64-string str :wrap-at-column nil)
   #-allegro (cl-base64:string-to-base64-string str))
 
 (defun rfc2045-q-encode-string (str &key (external-format :utf-8))
