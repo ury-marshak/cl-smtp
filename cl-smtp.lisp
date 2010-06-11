@@ -406,7 +406,7 @@
   "Finish sending an email to the SMTP server connected to on STREAM.
    The server is expected to be inside of the DATA SMTP command.  The
    connection is then terminated by sending a QUIT command."
-  (fresh-line stream)
+  (write-to-smtp stream "")
   (smtp-command stream "." 250)
   (smtp-command stream "QUIT" 221))
 
