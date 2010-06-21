@@ -84,6 +84,21 @@
     (assert (equal headerstr tmpstr))
     ))
 
+(define-cl-smtp-test "send-attachment-header-2" ()
+  (let* ((boundary (make-random-boundary))
+         (p (merge-pathnames "tests.lisp" (get-component-pathname)))
+         (attachment (make-attachment p
+				      :mime-type "text/plain"
+				      :name "foo\\bar"))
+         (headerstr (with-output-to-string (s)
+                      (send-attachment-header s boundary attachment :utf-8)))
+         (returnnewline (format nil (format nil "~C~C" #\Return #\NewLine)))
+         (tmpstr (format nil "--~A~AContent-type: text/plain;~% name*=UTF-8''foo%5cbar;~% name=\"foo\\\\bar\"~AContent-Disposition: attachment; filename*=UTF-8''foo%5cbar; filename=\"foo\\\\bar\"~AContent-Transfer-Encoding: base64~A~A" 
+                         boundary returnnewline returnnewline returnnewline 
+                         returnnewline returnnewline)))
+    (assert (equal headerstr tmpstr))
+    ))
+
 
 (define-cl-smtp-test "mask-dot-1" ()
   (assert (equal (mask-dot (format nil "~C~C.~C~C" #\Return #\NewLine
@@ -130,6 +145,32 @@
                  "start 
   ende"))
   )
+
+(defun file-to-usb8-buffer (file)
+  (with-open-file (s file :element-type '(unsigned-byte 8))
+    (let* ((flength (file-length s))
+           (buffer (make-array flength :element-type '(unsigned-byte 8))))
+      (loop for i from 0 to flength do
+           (let ((bchar (read-byte s nil 'EOF)))
+             (if (eql bchar 'EOF)
+                 (return)
+                 (setf (aref buffer i) bchar))))
+      buffer)))
+
+(define-cl-smtp-test "base64-encode-file" ()
+  (let* ((p (merge-pathnames "tests.lisp" (get-component-pathname)))
+         (base64str1 (with-output-to-string (s)
+                       (base64-encode-file p s)))
+         (buffer (file-to-usb8-buffer p))
+         (base64str2 
+          #-allegro
+           (cl-base64:usb8-array-to-base64-string buffer :columns 0)
+          #+allegro 
+          (excl:usb8-array-to-base64-string buffer :wrap-at-column nil)
+           )) 
+    
+    (assert (string-equal (remove #\Return (remove #\Newline base64str1 :test #'equal) :test #'equal) base64str2))
+    ))
 
 (defun run-test (name)
   (handler-case

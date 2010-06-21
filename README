@@ -45,10 +45,7 @@ Returns nil or error with message
                                      proper method is determined automatically.
   - attachments (Attachment Instance or String or Pathname: attachments to send
                 List of Attachment/String/Pathnames)
-  - buffer-size (Number default 256): controls how much of a attachment file
-                                      is read on each loop before encoding 
-                                      and transmitting the contents, 
-                                      the number is interpreted in KB 
+  - buffer-size (Number default 256): is no longer used, will remove in the future
   - ssl (or t :starttls :tls)       : if t or :STARTTLS: use the STARTTLS functionality
                                       if :TLS: use TLS directly
   - external-format                 : symbol, default :utf-8

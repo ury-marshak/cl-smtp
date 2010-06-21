@@ -1,3 +1,12 @@
+Version 20100621.1
+2010.06.21
+Rewrite base64-encode-file in attachments.lisp, fixed wrap at column 
+and add #\Return#\Newline after each column, ignore keyword buffer-size.
+Fixed string-to-base64-string allegro part in cl-smtp.lisp (wrap-at-column nil).
+Fixed finish-smtp-mail in cl-smtp, not use fresh-line on stream, send #\Return#\Newline.
+Add test for base64-encode-file.
+Change cl-smtp.lisp, attachment.lisp, cl-smtp.asd, CHANGELOG, README
+
 Version 20100505.1
 2010.05.05
 Rewrite encoding functions, now it is possible to use non ascii characters in
