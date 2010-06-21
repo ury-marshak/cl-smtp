@@ -104,11 +104,11 @@
     (generate-message-header 
      sock 
      :boundary boundary
-     :content-type (format nil "~A;~%~tname*=~A;~%~tname=~S"
+     :content-type (format nil "~A;~%~tname*=~A;~%~tname=\"~A\""
 			   (attachment-mime-type attachment)
 			   quoted-name* quoted-name)
      :content-transfer-encoding "base64"
-     :content-disposition (format nil "attachment; filename*=~A; filename=~S"
+     :content-disposition (format nil "attachment; filename*=~A; filename=\"~A\""
 				  quoted-name* quoted-name))))
 
 (defun send-end-marker (sock boundary)
@@ -158,78 +158,45 @@
 (defun base64-encode-file (file-in sock
                                    &key 
                                    (buffer-size 256) ;; in KB
-                                   (wrap-at-column 70))
-  "Encodes the file contents given by file-in, which can be of any form appropriate to with-open-file, and write the base-64 encoded version to sock, which is a socket.
+                                   (wrap-at-column 76))
+  "Encodes the file contents given by file-in, which can be of any form appropriate to with-open-file, 
+   and write the base-64 encoded version to sock, which is a socket.
 
-Buffer-size, given in KB, controls how much of the file is processed and written to the socket at one time. A buffer-size of 0, processes the file all at once, regardless of its size. One will have to weigh the speed vs, memory consuption risks when chosing which way is best. 
+   Buffer-size is ignored
 
-Wrap-at-column controls where the encode string is divided for line breaks." 
-    (when (probe-file file-in)
-      ;;-- open filein ---------
-      (with-open-file (strm-in file-in
-                               :element-type '(unsigned-byte 8))
-	(let* ((;; convert buffer size given to bytes 
-                ;; or compute bytes based on file 
-		max-buffer-size 
-		(if (zerop buffer-size)
-		    (file-length strm-in)
-		    ;; Ensures 64 bit encoding is properly 
-		    ;; divided so that filler 
-		    ;; characters are not required between chunks
-		    (* 24 (truncate (/ (* buffer-size 1024) 24)))))
-	       (column-count 0)
-	       (eof? nil)
-	       (buffer (make-array max-buffer-size 
-				   :element-type '(unsigned-byte 8))))
-	  (loop 
-	   (print-debug (format nil "~%Process attachment ~a~%" file-in))
-	   (let* ((;; read a portion of the file into the buffer arrary and 
-                   ;; returns the index where it stopped
-		   byte-count (dotimes (i max-buffer-size max-buffer-size)
-				(let ((bchar (read-byte strm-in nil 'EOF)))
-				  (if (eql bchar 'EOF)
-				      (progn 
-					(setq eof? t)
-					(return i))
-				      (setf (aref buffer i) bchar))))))
-		  (if (zerop buffer-size)
-		      ;; send file all at once to socket. 
-		      #+allegro
-		      (write-string (excl:usb8-array-to-base64-string 
-				     buffer wrap-at-column) sock)
-		      #-allegro
-		      (cl-base64:usb8-array-to-base64-stream 
-		       buffer sock :columns wrap-at-column)
-		      ;; otherwise process file in chunks. 
-                    ;; The extra encoded-string, 
-		      ;; and its subseq functions are brute force methods
-                    ;; to properly handle the wrap-at-column feature 
-                    ;; between buffers. 
-                    ;; Not the most efficient way,
-                    ;; but it works and uses existing functions 
-                    ;; in the cl-base64 package.
-		    (let* ((;; drops off extra elements that were not filled in in reading, this is important for lisp systems that default a value into
-			    ;; the array when it is created. -- ie Lispworks, SBCL
-			    trimmed-buffer (if eof?
-					       (subseq buffer 0 byte-count)
-					       buffer))
-			   (encoded-string 
-			    #+allegro
-			     (excl:usb8-array-to-base64-string 
-			      trimmed-buffer)
-			    #-allegro
-			    (cl-base64:usb8-array-to-base64-string 
-			     trimmed-buffer)))
-		      (loop for ch across encoded-string 
-			    do (progn 
-				 (write-char ch sock)
-				 (incf column-count)
-				 (when (= column-count wrap-at-column)
-				   (setq column-count 0)
-				   (write-char #\Newline sock))))))
-		  (force-output sock)
-		  (print-debug (format nil "~% Eof is ~a~%" eof?))
-		  (when (or (zerop buffer-size)
-			    eof?)
-                    (write-blank-line sock)
-		    (return))))))))
+   Wrap-at-column controls where the encode string is divided for line breaks, 
+   it is always set to a multiple of 3." 
+  (declare (ignore buffer-size))
+  (when (probe-file file-in)
+    ;;-- open filein ---------
+    (print-debug (format nil "base64-encode-file ~A" file-in))
+    (with-open-file (strm-in file-in
+                             :element-type '(unsigned-byte 8))
+      (let* ((flength (file-length strm-in))
+             (columns (* (truncate (/ wrap-at-column 3)) 3))
+             (r 0)
+             (n 0))
+        (loop while (< (file-position strm-in) flength)
+           for buffer = (make-array  3
+                                     :element-type '(unsigned-byte 8))
+           do
+           (loop for i from 0 to 2 do
+                (let ((bchar (read-byte strm-in nil 'EOF)))
+                  (if (eql bchar 'EOF)
+                      (progn
+                        (setf r i)
+                        (return))
+                      (setf (aref buffer i) bchar))))
+           #+allegro 
+           (write-sequence (excl:usb8-array-to-base64-string 
+                            (if (> r 0) (subseq buffer 0 r) buffer) :wrap-at-column nil)
+                           sock)
+           #-allegro 
+           (cl-base64:usb8-array-to-base64-stream 
+            (if (> r 0) (subseq buffer 0 r) buffer) sock :columns 0)
+           (incf n 3)
+           (when (= (mod n columns) 0)
+             (setf n 0)
+             (write-blank-line sock)))
+        (force-output sock)
+        (write-blank-line sock)))))
