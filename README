@@ -49,6 +49,8 @@ Returns nil or error with message
   - ssl (or t :starttls :tls)       : if t or :STARTTLS: use the STARTTLS functionality
                                       if :TLS: use TLS directly
   - external-format                 : symbol, default :utf-8
+  - envelope-sender                 : email adress, 
+                                      if not set then envelope-sender = from
 
 ------------------------------------------------
 

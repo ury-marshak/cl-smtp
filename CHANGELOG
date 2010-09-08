@@ -1,3 +1,10 @@
+Version 20100908.1
+2010.09.08
+Add keyword envelope-sender to send-email, if envelope-sender not set then
+envelope-sender = from argument.
+Change x-mailer header setting.
+Change cl-smtp.lisp, cl-smtp.asd, CHANGELOG, README
+
 Version 20100621.1
 2010.06.21
 Rewrite base64-encode-file in attachments.lisp, fixed wrap at column 

@@ -18,7 +18,7 @@
 
 (in-package :cl-smtp)
 
-(defparameter *x-mailer* (format nil "cl-smtp (~A ~A)" 
+(defparameter *x-mailer* (format nil "(~A ~A)" 
 				 (lisp-implementation-type)
 				 (lisp-implementation-version)))
 
@@ -143,8 +143,7 @@
                            :response-message msgstr))))
     lines))
 
-(defun do-with-smtp-mail (host from to thunk &key port authentication ssl 
-                          local-hostname (external-format :utf-8))
+(defun do-with-smtp-mail (host envelope-sender to thunk &key port authentication ssl local-hostname (external-format :utf-8))
   (usocket:with-client-socket (socket stream host port 
                                       :element-type '(unsigned-byte 8))
     (setf stream (flexi-streams:make-flexi-stream 
@@ -156,11 +155,11 @@
                                   :authentication authentication 
                                   :ssl ssl
                                   :local-hostname local-hostname)))
-      (initiate-smtp-mail stream from to)
+      (initiate-smtp-mail stream envelope-sender to)
       (funcall thunk stream)
       (finish-smtp-mail stream))))
 
-(defmacro with-smtp-mail ((stream-var host from to &key ssl (port (if (eq :tls ssl) 465 25)) authentication local-hostname (external-format :utf-8))
+(defmacro with-smtp-mail ((stream-var host envelope-sender to &key ssl (port (if (eq :tls ssl) 465 25)) authentication local-hostname (external-format :utf-8))
                           &body body)
   "Encapsulate a SMTP MAIl conversation.  A connection to the SMTP
    server on HOST and PORT is established and a MAIL command is
@@ -168,7 +167,7 @@
    recipients.  BODY is evaluated with STREAM-VAR being the stream
    connected to the remote SMTP server.  BODY is expected to write the
    RFC2821 message (headers and body) to STREAM-VAR."
-  `(do-with-smtp-mail ,host ,from ,to
+  `(do-with-smtp-mail ,host ,envelope-sender ,to
                       (lambda (,stream-var) ,@body)
                       :port ,port
                       :authentication ,authentication 
@@ -179,7 +178,7 @@
 (defun send-email (host from to subject message 
 		   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc reply-to extra-headers
 		   html-message display-name authentication
-		   attachments (buffer-size 256) (external-format :utf-8))
+		   attachments (buffer-size 256) envelope-sender (external-format :utf-8))
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
 	     :port port :cc (check-arg cc "cc") :bcc (check-arg bcc "bcc")
 	     :reply-to reply-to 
@@ -191,6 +190,7 @@
 	     :buffer-size (if (numberp buffer-size) 
 			      buffer-size
 			      256)
+	     :envelope-sender (or envelope-sender from)
              :external-format external-format
 	     :ssl ssl))
 
@@ -199,8 +199,9 @@
 		  reply-to extra-headers html-message display-name
 		  authentication attachments buffer-size
                   (local-hostname (usocket::get-host-name))
-                  (external-format :utf-8))
-  (with-smtp-mail (stream host from (append to cc bcc)
+		  (envelope-sender from)
+		  (external-format :utf-8))
+  (with-smtp-mail (stream host envelope-sender (append to cc bcc)
                           :port port
                           :authentication authentication 
                           :ssl ssl
@@ -380,7 +381,7 @@
       (smtp-authenticate stream authentication features)))
   stream)
   
-(defun initiate-smtp-mail (stream from to)
+(defun initiate-smtp-mail (stream envelope-sender to)
   "Initiate an SMTP MAIL command, sending a MAIL FROM command for the
    email address in FROM and RCPT commands for all receipients in TO,
    which is expected to be a list.
@@ -389,7 +390,7 @@
    is signalled.  This condition may be handled by the caller in order
    to send the email anyway."
   (smtp-command stream 
-                (format nil "MAIL FROM:<~A>" (substitute-return-newline from))
+                (format nil "MAIL FROM:<~A>" (substitute-return-newline envelope-sender))
                 250)
   (dolist (address to)
     (restart-case 
@@ -406,6 +407,7 @@
   "Finish sending an email to the SMTP server connected to on STREAM.
    The server is expected to be inside of the DATA SMTP command.  The
    connection is then terminated by sending a QUIT command."
+  ;;(fresh-line stream)
   (write-to-smtp stream "")
   (smtp-command stream "." 250)
   (smtp-command stream "QUIT" 221))
@@ -430,7 +432,7 @@
   (write-to-smtp stream (format nil "Subject: ~A" 
                                 (rfc2045-q-encode-string 
                                  subject :external-format external-format)))
-  (write-to-smtp stream (format nil "X-Mailer: ~A" 
+  (write-to-smtp stream (format nil "X-Mailer: cl-smtp~A" 
 				(rfc2045-q-encode-string 
                                  *x-mailer* :external-format external-format)))
   (when reply-to
