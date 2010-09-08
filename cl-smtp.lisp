@@ -18,7 +18,7 @@
 
 (in-package :cl-smtp)
 
-(defparameter *x-mailer* (format nil "(~A ~A)" 
+(defparameter *x-mailer* (format nil "cl-smtp (~A ~A)" 
 				 (lisp-implementation-type)
 				 (lisp-implementation-version)))
 
@@ -207,70 +207,14 @@
                           :ssl ssl
                           :local-hostname local-hostname
                           :external-format external-format)
-    (let* ((boundary (make-random-boundary))
-           (html-boundary (if (and attachments html-message)
-                              (make-random-boundary)
-                              boundary))
-           (content-type 
-            (format nil "text/plain; charset=~S" 
-                    (string-upcase (symbol-name external-format)))))
-      (send-mail-headers stream
-                         :from from
-                         :to to
-                         :cc cc
-                         :reply-to reply-to
-                         :display-name display-name 
-                         :extra-headers extra-headers :subject subject)
-      (when (or attachments html-message)
-        (send-multipart-headers stream
-                                :attachment-boundary (when attachments boundary) 
-                                :html-boundary html-boundary))
-      ;;----------- Send  the body Message ---------------------------
-      ;;--- Send the proper headers depending on plain-text, 
-      ;;--- multi-part or html email 
-      (cond ((and attachments html-message)
-             ;; if both present, start attachment section, 
-             ;; then define alternative section, 
-             ;; then write alternative header
-             (progn 
-               (generate-message-header 
-                stream :boundary boundary :include-blank-line? nil)
-               (generate-multipart-header stream html-boundary 
-                                          :multipart-type "alternative")
-               (write-blank-line stream)
-               (generate-message-header 
-                stream :boundary html-boundary :content-type content-type 
-                :content-disposition "inline" :include-blank-line? nil)))
-            (attachments 
-             (generate-message-header 
-              stream :boundary boundary 
-              :content-type content-type :content-disposition "inline"
-              :include-blank-line? nil))
-            (html-message
-             (generate-message-header 
-              stream :boundary html-boundary :content-type content-type 
-              :content-disposition "inline"))
-            (t 
-             (generate-message-header stream :content-type content-type
-                                      :include-blank-line? nil)))
-      (write-blank-line stream)
-      (write-to-smtp stream message)
-      (write-blank-line stream)
-      ;;---------- Send  Html text if needed -------------------------
-      (when html-message
-        (generate-message-header 
-         stream :boundary html-boundary 
-         :content-type (format nil "text/html; charset=~S" 
-                               (string-upcase (symbol-name external-format)))
-         :content-disposition "inline")
-        (write-to-smtp stream html-message)
-        (send-end-marker stream html-boundary))
-      ;;---------- Send Attachments -----------------------------------
-      (when attachments
-        (dolist (attachment attachments)
-          (send-attachment stream attachment boundary buffer-size 
-                           external-format))
-        (send-end-marker stream boundary)))))
+    (write-rfc8822-message stream from to subject message 
+                           :cc cc :reply-to reply-to 
+                           :extra-headers extra-headers 
+                           :html-message html-message
+                           :display-name display-name
+                           :attachments attachments 
+                           :buffer-size buffer-size
+                           :external-format external-format)))
 
 (define-condition no-supported-authentication-method (smtp-error)
   ((features :initarg :features :reader features))
@@ -407,7 +351,6 @@
   "Finish sending an email to the SMTP server connected to on STREAM.
    The server is expected to be inside of the DATA SMTP command.  The
    connection is then terminated by sending a QUIT command."
-  ;;(fresh-line stream)
   (write-to-smtp stream "")
   (smtp-command stream "." 250)
   (smtp-command stream "QUIT" 221))
@@ -432,7 +375,7 @@
   (write-to-smtp stream (format nil "Subject: ~A" 
                                 (rfc2045-q-encode-string 
                                  subject :external-format external-format)))
-  (write-to-smtp stream (format nil "X-Mailer: cl-smtp~A" 
+  (write-to-smtp stream (format nil "X-Mailer: ~A" 
 				(rfc2045-q-encode-string 
                                  *x-mailer* :external-format external-format)))
   (when reply-to
@@ -454,6 +397,76 @@
 			stream html-boundary 
 			:multipart-type "alternative"))
 	(t nil)))
+
+(defun write-rfc8822-message (stream from to subject message
+                              &key cc reply-to extra-headers html-message 
+                              display-name attachments buffer-size
+                              (external-format :utf-8))
+  (let* ((boundary (make-random-boundary))
+         (html-boundary (if (and attachments html-message)
+                            (make-random-boundary)
+                            boundary))
+         (content-type 
+          (format nil "text/plain; charset=~S" 
+                  (string-upcase (symbol-name external-format)))))
+    (send-mail-headers stream
+                       :from from
+                       :to to
+                       :cc cc
+                       :reply-to reply-to
+                       :display-name display-name 
+                       :extra-headers extra-headers :subject subject)
+    (when (or attachments html-message)
+      (send-multipart-headers stream
+                              :attachment-boundary (when attachments boundary) 
+                              :html-boundary html-boundary)
+      (write-blank-line stream))
+    ;;----------- Send  the body Message ---------------------------
+    ;;--- Send the proper headers depending on plain-text, 
+    ;;--- multi-part or html email 
+    (cond ((and attachments html-message)
+           ;; if both present, start attachment section, 
+           ;; then define alternative section, 
+           ;; then write alternative header
+           (progn 
+             (generate-message-header 
+              stream :boundary boundary :include-blank-line? nil)
+             (generate-multipart-header stream html-boundary 
+                                        :multipart-type "alternative")
+             (write-blank-line stream)
+             (generate-message-header 
+              stream :boundary html-boundary :content-type content-type 
+              :content-disposition "inline" :include-blank-line? nil)))
+          (attachments 
+           (generate-message-header 
+            stream :boundary boundary 
+            :content-type content-type :content-disposition "inline"
+            :include-blank-line? nil))
+          (html-message
+           (generate-message-header 
+            stream :boundary html-boundary :content-type content-type 
+            :content-disposition "inline"))
+          (t 
+           (generate-message-header stream :content-type content-type
+                                    :include-blank-line? nil)))
+    (write-blank-line stream)
+    (write-to-smtp stream message)
+    (write-blank-line stream)
+    ;;---------- Send  Html text if needed -------------------------
+    (when html-message
+      (generate-message-header 
+       stream :boundary html-boundary 
+       :content-type (format nil "text/html; charset=~S" 
+                             (string-upcase (symbol-name external-format)))
+       :content-disposition "inline")
+      (write-to-smtp stream html-message)
+      (send-end-marker stream html-boundary))
+    ;;---------- Send Attachments -----------------------------------
+    (when attachments
+      (dolist (attachment attachments)
+        (send-attachment stream attachment boundary buffer-size 
+                         external-format))
+      (send-end-marker stream boundary))))
 
 (defun write-to-smtp (stream command)
   (print-debug (format nil "to server: ~A" command)) 

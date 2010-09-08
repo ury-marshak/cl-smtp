@@ -33,7 +33,8 @@
 	   "ATTACHMENT-DATA-PATHNAME"
 	   "ATTACHMENT-MIME-TYPE"
            "RFC2045-Q-ENCODE-STRING"
-           "RFC2231-ENCODE-STRING"))
+           "RFC2231-ENCODE-STRING"
+           "WRITE-RFC8822-MESSAGE"))
 
 (in-package :cl-smtp)
 

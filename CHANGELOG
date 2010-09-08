@@ -1,3 +1,9 @@
+Version 20100908.2
+2010.09.08
+Add write-rfc8822-message, to write a rfc8822 compatible mail.
+Change x-mailer header setting.
+Change cl-smtp.lisp, cl-smtp.asd, package.lisp, CHANGELOG, README
+
 Version 20100908.1
 2010.09.08
 Add keyword envelope-sender to send-email, if envelope-sender not set then

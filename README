@@ -79,6 +79,21 @@ Returns  rfc2231 encode string
   - external-format                 : symbol, default :utf-8
 
 ------------------------------------------------
+
+(cl-smtp:write-rfc8822-message stream from to subject message 
+                               :cc cc :reply-to reply-to 
+                               :extra-headers extra-headers 
+                               :html-message html-message
+                               :display-name display-name
+                               :attachments attachments 
+                               :buffer-size buffer-size
+                               :external-format external-format)
+
+Writes a rfc8822 compatible email to the stream.
+
+For arguments see the cl-smtp:send-email documentation.
+
+------------------------------------------------
 CLASS
 cl-smtp:attachment 
 
