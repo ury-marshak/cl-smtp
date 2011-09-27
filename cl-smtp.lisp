@@ -486,7 +486,7 @@
     (print-debug (format nil "from server: ~A" line))
     (if (= (char-code (elt line 3)) (char-code #\-))
 	(read-from-smtp stream (append lines (list response)))
-	(values response-code response lines))))
+	(values response-code response (append lines (list response))))))
 
 (defun get-email-date-string ()
   (multiple-value-bind (sec min h d m y wd) (get-decoded-time)
