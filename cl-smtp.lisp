@@ -286,19 +286,18 @@
            (setf features (rest (smtp-command stream (format nil "EHLO ~A" local-hostname)
                                               250))))
          (convert-connection-to-ssl ()
-           (setf stream 
-                 #+allegro (socket:make-ssl-client-stream stream)
-                 #-allegro
-                 (let ((s (flexi-streams:flexi-stream-stream stream)))
-                   (cl+ssl:make-ssl-client-stream 
-                    (cl+ssl:stream-fd s)
-                    :close-callback (lambda () (close s)))))
-           #-allegro
-           (setf stream (flexi-streams:make-flexi-stream 
-                         stream
-                         :external-format 
-                         (flexi-streams:make-external-format 
-                          :latin-1 :eol-style :lf)))))
+           (let ((external-format (flexi-streams:flexi-stream-external-format stream)))
+             (setf stream 
+                   #+allegro (socket:make-ssl-client-stream stream)
+                   #-allegro
+                   (let ((s (flexi-streams:flexi-stream-stream stream)))
+                     (cl+ssl:make-ssl-client-stream 
+                      (cl+ssl:stream-fd s)
+                      :close-callback (lambda () (close s)))))
+             #-allegro
+             (setf stream (flexi-streams:make-flexi-stream 
+                           stream
+                           :external-format external-format)))))
       (ecase ssl
         ((or t :starttls)
 	 (read-greetings)
