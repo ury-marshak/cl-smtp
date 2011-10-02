@@ -1,3 +1,13 @@
+Repository
+=======================================
+
+This repository contains a version of CL-SMTP with several bufixes applied.
+Based on version 20100908.2 from CVS on common-lisp.net
+
+
+
+Original README
+=======================================
 
 CL-SMTP is a simple lisp smtp client. 
 It works in ACL, SBCL, CMUCL, OPENMCL, LISPWORKS, CLISP and ECL.
