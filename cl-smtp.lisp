@@ -159,7 +159,7 @@
       (funcall thunk stream)
       (finish-smtp-mail stream))))
 
-(defmacro with-smtp-mail ((stream-var host envelope-sender to &key ssl (port (if (eq :tls ssl) 465 25)) authentication local-hostname (external-format :utf-8))
+(defmacro with-smtp-mail ((stream-var host envelope-sender to &key ssl (port (case ssl (:tls 465) ((t :starttls) 587) (otherwise 25))) authentication local-hostname (external-format :utf-8))
                           &body body)
   "Encapsulate a SMTP MAIl conversation.  A connection to the SMTP
    server on HOST and PORT is established and a MAIL command is
@@ -176,7 +176,7 @@
                       :external-format ,external-format))
 
 (defun send-email (host from to subject message 
-		   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc reply-to extra-headers
+		   &key ssl (port (case ssl (:tls 465) ((t :starttls) 587) (otherwise 25))) cc bcc reply-to extra-headers
 		   html-message display-name authentication
 		   attachments (buffer-size 256) envelope-sender (external-format :utf-8))
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
@@ -195,7 +195,7 @@
 	     :ssl ssl))
 
 (defun send-smtp (host from to subject message
-                  &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc
+                  &key ssl (port (case ssl (:tls 465) ((t :starttls) 587) (otherwise 25))) cc bcc
 		  reply-to extra-headers html-message display-name
 		  authentication attachments buffer-size
                   (local-hostname (usocket::get-host-name))
